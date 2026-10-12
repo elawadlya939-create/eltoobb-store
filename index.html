@@ -679,8 +679,7 @@ if (!configured) {
   const fail = e => { console.error(e); toastMsg(ERR[e.code] || 'حصل خطأ، حاول تاني'); };
 
   A.onAuthStateChanged(auth, u => {
-    // الحساب بيتعتبر مسجّل دخول بس لو الإيميل متفعّل (جوجل متفعّل تلقائيًا)
-    const ok = u && u.emailVerified;
+    const ok = !!u;
     window.setAuthUser(ok ? { id: u.email || u.uid, name: u.displayName || '', uid: u.uid } : null);
   });
   A.getRedirectResult(auth).catch(fail);
@@ -691,21 +690,14 @@ if (!configured) {
       try {
         const c = await A.createUserWithEmailAndPassword(auth, email, pw);
         await A.updateProfile(c.user, { displayName: name });
-        await A.sendEmailVerification(c.user);
-        await A.signOut(auth);
-        toastMsg('بعتنالك رابط تفعيل على إيميلك، افتحه وبعدين سجّل دخول');
-        authMode = 'login'; render(true);
+        window.setAuthUser({ id: c.user.email || c.user.uid, name: name || '', uid: c.user.uid });
+        toastMsg('تم إنشاء حسابك ✓'); location.hash = '#/home';
       } catch (e) { fail(e); }
     },
     async login(idv, pw) {
       const email = toEmail(idv); if (!email) return toastMsg('اكتب بريد إلكتروني صحيح');
       try {
         const c = await A.signInWithEmailAndPassword(auth, email, pw);
-        if (!c.user.emailVerified) {
-          await A.sendEmailVerification(c.user).catch(() => {});
-          await A.signOut(auth);
-          return toastMsg('فعّل إيميلك الأول، بعتنالك الرابط تاني');
-        }
         toastMsg('تم تسجيل الدخول ✓'); location.hash = '#/home';
       }
       catch (e) { fail(e); }
